@@ -12,6 +12,7 @@ Node::Node()
     m_outlineColor = Qt::darkBlue;
     m_backgroundColor = Qt::white;
 
+    setAcceptHoverEvents(true);
     setFlags(ItemIsMovable | ItemIsSelectable);
 }
 
@@ -78,13 +79,13 @@ void Node::removeLink(Link *link)
 
 QRectF Node::boundingRect() const
 {
-    const int Margin = 1;
+    const int Margin = 10; //缩放, addLine控制柄, 已经缩小时重绘容错
     return outlineRect().adjusted(-Margin, -Margin, +Margin, +Margin);
 }
 
 QPainterPath Node::shape() const
 {
-    QRectF rect = outlineRect();
+    QRectF rect = boundingRect();
 
     QPainterPath path;
     path.addRoundRect(rect, roundness(rect.width()),
@@ -96,21 +97,28 @@ void Node::paint(QPainter *painter,
                  const QStyleOptionGraphicsItem *option,
                  QWidget * /* widget */)
 {
-    QPen pen(m_outlineColor);
+    drawNormalOutline(painter);
+
     if (option->state & QStyle::State_Selected)
-    {
-        pen.setStyle(Qt::DotLine);
-        pen.setWidth(2);
-    }
-    painter->setPen(pen);
-    painter->setBrush(m_backgroundColor);
+        drawScaleHandle(painter);
+    if(option->state & QStyle::State_Selected ||
+            m_nodeStats == Hover)
+        drawAddLineHandle(painter);
 
-    QRectF rect = outlineRect();
-    painter->drawRoundRect(rect, roundness(rect.width()),
-                           roundness(rect.height()));
+    drawText(painter);
+}
 
-    painter->setPen(m_textColor);
-    painter->drawText(rect, Qt::AlignCenter, m_text);
+void Node::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+{
+    m_nodeStats = Hover;
+    update();
+    QGraphicsItem::hoverEnterEvent(event);
+}
+void Node::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+{
+    m_nodeStats = Normal;
+    update();
+    QGraphicsItem::hoverLeaveEvent(event);
 }
 
 void Node::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
@@ -120,39 +128,53 @@ void Node::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
                            QLineEdit::Normal, m_text);
     if (!text.isEmpty())
         setText(text);
+
+    //QGraphicsItem::mouseDoubleClickEvent(event);
 }
 
 void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    for(auto link : m_links)
+    if(m_nodeCustomEvent)
     {
-        link->trackNodes();
-    }
-
-    QGraphicsItem::mouseMoveEvent(event);
-}
-
-void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
-{
-    QPointF curPos = event->pos();
-    QRectF rect = outlineRect();
-    rect.adjust(3, 3, -3, -3);
-    //rect.translate(nodePos);
-    if(!rect.contains(curPos))
-    {
-        auto sc = dynamic_cast<Scene*>(scene());
-        if(sc)
+        CustomNodeEvent::NodeMouseEvent mouseEvent = m_nodeCustomEvent->type();
+        if(mouseEvent == CustomNodeEvent::Resize)
         {
-            sc->setStart(this);
+            NodeResizeEvent*  nodeEvent = m_nodeCustomEvent->nodeResizeEvent();
+            if(nodeEvent)
+            {
+                m_rect = nodeEvent->curRect(event->pos());
+                update();
+            }
+            return;
+        }
+        else if(mouseEvent == CustomNodeEvent::AddLine)
+        {
             return;
         }
     }
 
+    QGraphicsItem::mouseMoveEvent(event);
+
+    for(auto link : m_links)
+    {
+        link->trackNodes();
+    }
+}
+
+void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
+{
+    if(testResizeEvent(event))
+        return;
+    if(testAddLineEvent(event))
+        return;
+
+    //MoveEvent
     QGraphicsItem::mousePressEvent(event);
 }
 
 void Node::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
+    m_nodeCustomEvent = nullptr;
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
@@ -172,12 +194,14 @@ QVariant Node::itemChange(GraphicsItemChange change,
     return QGraphicsItem::itemChange(change, value);
 }
 
-QRectF Node::outlineRect() const
+QRect Node::outlineRect() const
 {
-    const int Padding = 8;
+    /*const int Padding = 8;
     QFontMetrics metrics = QApplication::fontMetrics();
     QRect rect = metrics.boundingRect(m_text);
-    rect.adjust(-Padding, -Padding, +Padding, +Padding);
+    rect.adjust(-Padding, -Padding, +Padding, +Padding);*/
+
+    QRect rect = m_rect;
     rect.translate(-rect.center());
     return rect;
 }
@@ -186,4 +210,131 @@ int Node::roundness(double size) const
 {
     const int Diameter = 12;
     return 100 * Diameter / int(size);
+}
+
+QVector<QRectF> Node::scaleHandlerVector()
+{
+    const QRect nodeRect = outlineRect();
+    QRectF handleRect{-4, -4, 8, 8};
+    QVector<QRectF> handleRects;
+    handleRects.push_back((handleRect.translated(nodeRect.topLeft())));
+    handleRects.push_back(handleRect.translated(nodeRect.topRight()));
+    handleRects.push_back(handleRect.translated(nodeRect.bottomRight()));
+    handleRects.push_back(handleRect.translated(nodeRect.bottomLeft()));
+    return handleRects;
+}
+
+QVector<QRectF> Node::addLineHandlerVector()
+{
+    const QRect nodeRect = outlineRect();
+    QRectF handleRect{-4, -4, 8, 8};
+    QVector<QRectF> handleRects;
+    handleRects.push_back(handleRect.translated(QPointF(nodeRect.left(), 0)));  //左
+    handleRects.push_back(handleRect.translated(QPointF(0, nodeRect.top())));  //上
+    handleRects.push_back(handleRect.translated(QPointF(nodeRect.right(), 0)));  //右
+    handleRects.push_back(handleRect.translated(QPointF(0, nodeRect.bottom())));  //下
+    return handleRects;
+}
+
+bool Node::testResizeEvent(QGraphicsSceneMouseEvent* event)
+{
+    auto testContain = [&](const QVector<QRectF>& rects, const QPointF& p)->bool{
+        int idx = NodeResizeEvent::LeftTop;
+        for(auto& rect :  rects)
+        {
+            if(rect.contains(p))
+            {
+                NodeResizeEvent::DirectionType ty = static_cast<NodeResizeEvent::DirectionType>(idx);
+                m_nodeCustomEvent = std::make_shared<NodeResizeEvent>(ty, m_rect, p);
+                return true;
+            }
+            idx++;
+        }
+        return false;
+    };
+
+    QPointF curPos = event->pos();
+    QVector<QRectF> scaleRects = scaleHandlerVector();
+    return testContain(scaleRects, curPos);
+}
+
+bool Node::testAddLineEvent(QGraphicsSceneMouseEvent* event)
+{
+    auto testContain = [&](const QVector<QRectF>& rects, const QPointF& p)->bool{
+        int idx = NodeResizeEvent::LeftTop;
+        for(auto& rect :  rects)
+        {
+            if(rect.contains(p))
+            {
+                m_nodeCustomEvent = std::make_shared<NodeAddLineEvent>();
+                return true;
+            }
+            idx++;
+        }
+        return false;
+    };
+
+    QPointF curPos = event->pos();
+    QVector<QRectF> addRects = addLineHandlerVector();
+    if(testContain(addRects, curPos))
+    {
+        auto sc = dynamic_cast<Scene*>(scene());
+        if(sc)
+        {
+            sc->setStart(this);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Node::drawNormalOutline(QPainter *painter)
+{
+    const QRect nodeRect = outlineRect();
+    painter->save();
+    QPen pen(m_outlineColor);
+    pen.setWidth(2);
+    painter->setPen(pen);
+    painter->setBrush(m_backgroundColor);
+    painter->drawRoundRect(nodeRect, 1, 1);
+    painter->restore();
+}
+
+void Node::drawScaleHandle(QPainter *painter)
+{
+    painter->save();
+    //如果这里不设置取消反锯齿, pen的最小宽度为2
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    painter->setPen(QPen(QColor("#883333"), 1));
+    painter->setBrush(Qt::white);
+    QRectF handleRect{-4, -4, 8, 8};
+    QVector<QRectF> handleRects = scaleHandlerVector();
+    painter->drawRects(handleRects);
+
+    painter->restore();
+}
+
+void Node::drawAddLineHandle(QPainter *painter)
+{
+    painter->save();
+    //如果这里不设置取消反锯齿, pen的最小宽度为2
+    //painter->setRenderHint(QPainter::Antialiasing, false);
+    painter->setPen(QPen(QColor("#883333"), 1));
+    painter->setBrush(Qt::white);
+
+    QVector<QRectF> handleRects = addLineHandlerVector();
+    for(auto handlerRect : handleRects)
+    {
+        painter->drawEllipse(handlerRect);
+    }
+
+    painter->restore();
+}
+
+void Node::drawText(QPainter *painter)
+{
+
+    painter->setPen(m_textColor);
+    const QRect nodeRect = outlineRect();
+    painter->drawText(nodeRect, Qt::AlignCenter, m_text);
 }

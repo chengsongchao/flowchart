@@ -259,6 +259,7 @@ void DiagramWindow::setupNode(Node *node)
     scene->addItem(node);
     ++seqNumber;
 
+    //scene->installEventFilter(node);
     scene->clearSelection();
     node->setSelected(true);
     bringToFront();
