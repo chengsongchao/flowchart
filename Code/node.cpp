@@ -137,6 +137,12 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     if(m_nodeCustomEvent)
     {
+        auto updateLine = [&](){
+            for(auto link : m_links)
+            {
+                link->trackNodes();
+            }
+        };
         CustomNodeEvent::NodeMouseEvent mouseEvent = m_nodeCustomEvent->type();
         if(mouseEvent == CustomNodeEvent::Resize)
         {
@@ -146,6 +152,7 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
                 m_rect = nodeEvent->curRect(event->pos());
                 update();
             }
+            updateLine();
             return;
         }
         else if(mouseEvent == CustomNodeEvent::AddLine)
@@ -155,12 +162,10 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         else if(mouseEvent == CustomNodeEvent::Move)
         {
             QGraphicsItem::mouseMoveEvent(event);
+            updateLine();
             return;
         }
-        for(auto link : m_links)
-        {
-            link->trackNodes();
-        }
+
     }
 
     updateCursor(event);
@@ -170,8 +175,16 @@ void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     if(testResizeEvent(event))
         return;
+
     if(testAddLineEvent(event))
+    {
+        auto sc = dynamic_cast<Scene*>(scene());
+        if(sc)
+        {
+            sc->setStart(this);
+        }
         return;
+    }
 
     m_nodeCustomEvent = std::make_shared<NodeMoveEvent>();
     QGraphicsItem::mousePressEvent(event);
@@ -281,54 +294,44 @@ bool Node::testAddLineEvent(QGraphicsSceneMouseEvent* event)
 
     QPointF curPos = event->pos();
     QVector<QRectF> addRects = addLineHandlerVector();
-    if(testContain(addRects, curPos))
-    {
-        auto sc = dynamic_cast<Scene*>(scene());
-        if(sc)
-        {
-            sc->setStart(this);
-            return true;
-        }
-    }
-    return false;
+    return testContain(addRects, curPos);
 }
 
 void Node::updateCursor(QGraphicsSceneMouseEvent* event)
 {
-    auto testContain = [&](const QVector<QRectF>& rects, const QPointF& p)->bool{
+    auto testContain = [&](const QVector<QRectF>& rects, const QPointF& p)->int{
         int idx = NodeResizeEvent::LeftTop;
         for(auto& rect :  rects)
         {
             if(rect.contains(p))
             {
-                if(idx == 0 || idx == 2)
-                {
-                    setCursor(Qt::SizeFDiagCursor);
-                }
-                else if(idx == 1 || idx == 3)
-                {
-                    setCursor(Qt::SizeBDiagCursor);
-                }
-                return true;
+                return idx;
             }
             idx++;
         }
-        return false;
+        return idx;
     };
 
     QPointF curPos = mapFromScene(event->scenePos());
     QVector<QRectF> scaleRects = scaleHandlerVector();
-    if(testContain(scaleRects, curPos))
-       return;
+    int idx = testContain(scaleRects, curPos);
+    if(idx == 0 || idx == 2)
+    {
+        setCursor(Qt::SizeFDiagCursor);
+        return;
+    }
+    else if(idx == 1 || idx == 3)
+    {
+        setCursor(Qt::SizeBDiagCursor);
+        return;
+    }
 
     QVector<QRectF> addLineRects = addLineHandlerVector();
-    for(auto& rect :  addLineRects)
+    idx = testContain(addLineRects, curPos);
+    if(idx < 4)
     {
-        if(rect.contains(curPos))
-        {
-            setCursor(Qt::CrossCursor);
-            return;
-        }
+        setCursor(Qt::CrossCursor);
+        return;
     }
     unsetCursor();
 }
@@ -362,8 +365,6 @@ void Node::drawScaleHandle(QPainter *painter)
 void Node::drawAddLineHandle(QPainter *painter)
 {
     painter->save();
-    //如果这里不设置取消反锯齿, pen的最小宽度为2
-    //painter->setRenderHint(QPainter::Antialiasing, false);
     painter->setPen(QPen(QColor("#883333"), 1));
     painter->setBrush(Qt::white);
 
