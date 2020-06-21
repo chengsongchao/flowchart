@@ -116,6 +116,7 @@ void Node::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 }
 void Node::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
+    unsetCursor();
     m_nodeStats = Normal;
     update();
     QGraphicsItem::hoverLeaveEvent(event);
@@ -151,14 +152,18 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         {
             return;
         }
+        else if(mouseEvent == CustomNodeEvent::Move)
+        {
+            QGraphicsItem::mouseMoveEvent(event);
+            return;
+        }
+        for(auto link : m_links)
+        {
+            link->trackNodes();
+        }
     }
 
-    QGraphicsItem::mouseMoveEvent(event);
-
-    for(auto link : m_links)
-    {
-        link->trackNodes();
-    }
+    updateCursor(event);
 }
 
 void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
@@ -168,7 +173,7 @@ void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
     if(testAddLineEvent(event))
         return;
 
-    //MoveEvent
+    m_nodeCustomEvent = std::make_shared<NodeMoveEvent>();
     QGraphicsItem::mousePressEvent(event);
 }
 
@@ -286,6 +291,46 @@ bool Node::testAddLineEvent(QGraphicsSceneMouseEvent* event)
         }
     }
     return false;
+}
+
+void Node::updateCursor(QGraphicsSceneMouseEvent* event)
+{
+    auto testContain = [&](const QVector<QRectF>& rects, const QPointF& p)->bool{
+        int idx = NodeResizeEvent::LeftTop;
+        for(auto& rect :  rects)
+        {
+            if(rect.contains(p))
+            {
+                if(idx == 0 || idx == 2)
+                {
+                    setCursor(Qt::SizeFDiagCursor);
+                }
+                else if(idx == 1 || idx == 3)
+                {
+                    setCursor(Qt::SizeBDiagCursor);
+                }
+                return true;
+            }
+            idx++;
+        }
+        return false;
+    };
+
+    QPointF curPos = mapFromScene(event->scenePos());
+    QVector<QRectF> scaleRects = scaleHandlerVector();
+    if(testContain(scaleRects, curPos))
+       return;
+
+    QVector<QRectF> addLineRects = addLineHandlerVector();
+    for(auto& rect :  addLineRects)
+    {
+        if(rect.contains(curPos))
+        {
+            setCursor(Qt::CrossCursor);
+            return;
+        }
+    }
+    unsetCursor();
 }
 
 void Node::drawNormalOutline(QPainter *painter)

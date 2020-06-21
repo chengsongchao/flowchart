@@ -54,6 +54,25 @@ protected:
 
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override
     {
+        if(event->type() == QEvent::GraphicsSceneMouseMove)
+        {
+            auto sPos =event->scenePos();
+            auto childs = items(event->scenePos());
+            if(!childs.empty())
+            {
+                for(auto child : childs)
+                {
+                    auto item = dynamic_cast<Node*>(child);
+                    if(item)
+                    {
+                        auto ev = new SceneMouseMoveEvent(sPos);
+                        sendEvent(item, event);
+                        break;
+                    }
+                }
+            }
+        }
+
         if(m_start)
         {
             if(!m_tempLink)

@@ -64,19 +64,19 @@ public:
         int yAdd = curPos.y() - m_startPos.y();
         if(m_dir == LeftTop)
         {
-            curRect.adjust(xAdd/2, yAdd/2, -xAdd/2, -yAdd/2);
+            curRect.adjust(xAdd, yAdd, -xAdd, -yAdd);
         }
         else if(m_dir == RightTop)
         {
-            curRect.adjust(-xAdd/2, yAdd/2, xAdd/2, -yAdd/2);
+            curRect.adjust(-xAdd, yAdd, xAdd, -yAdd);
         }
         else if(m_dir == RightBottom)
         {
-            curRect.adjust(-xAdd/2, -yAdd/2, xAdd/2, yAdd/2);
+            curRect.adjust(-xAdd, -yAdd, xAdd, yAdd);
         }
         else if(m_dir == LeftBottom)
         {
-            curRect.adjust(xAdd/2, -yAdd/2, -xAdd/2, yAdd/2);
+            curRect.adjust(xAdd, -yAdd, -xAdd, yAdd);
         }
         if(curRect.width() < 24)
         {
@@ -166,6 +166,7 @@ private:
     int roundness(double size) const;
     bool testResizeEvent(QGraphicsSceneMouseEvent* event);
     bool testAddLineEvent(QGraphicsSceneMouseEvent* event);
+    void updateCursor(QGraphicsSceneMouseEvent* event);
 
     QVector<QRectF> scaleHandlerVector();
     QVector<QRectF> addLineHandlerVector();
