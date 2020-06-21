@@ -7,7 +7,7 @@
 class Scene : public QGraphicsScene
 {
 public:
-    Scene(QObject *parent = nullptr)
+    Scene(QObject* parent = nullptr)
         : QGraphicsScene(parent)
     {
 
@@ -24,7 +24,7 @@ public:
     }
 
 protected:
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override
     {
         if(m_start)
         {
@@ -42,34 +42,34 @@ protected:
                     }
                 }
             }
-            if(tempLink)
-                removeItem(tempLink);
+            if(m_tempLink)
+                removeItem(m_tempLink);
 
             m_start = nullptr;
             m_end = nullptr;
-            tempLink = nullptr;
+            m_tempLink = nullptr;
         }
         QGraphicsScene::mouseReleaseEvent(event);
     }
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override
+    void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override
     {
         if(m_start)
         {
-            if(!tempLink)
+            if(!m_tempLink)
             {
-                tempLink = new QGraphicsLineItem;
-                tempLink->setPen(QPen(QColor(Qt::darkRed), 1.0));
-                addItem(tempLink);
+                m_tempLink = new QGraphicsLineItem;
+                m_tempLink->setPen(QPen(QColor(Qt::darkRed), 1.0));
+                addItem(m_tempLink);
             }
-            tempLink->setLine(QLineF(m_start->pos(), event->scenePos()));
+            m_tempLink->setLine(QLineF(m_start->pos(), event->scenePos()));
             return;
         }
         QGraphicsScene::mouseMoveEvent(event);
     }
     Node* m_start{nullptr};
     Node* m_end{nullptr};
-    QGraphicsLineItem* tempLink{nullptr};
+    QGraphicsLineItem* m_tempLink{nullptr};
 };
 
 #endif // SCENE_H

@@ -8,72 +8,72 @@
 
 Node::Node()
 {
-    myTextColor = Qt::darkGreen;
-    myOutlineColor = Qt::darkBlue;
-    myBackgroundColor = Qt::white;
+    m_textColor = Qt::darkGreen;
+    m_outlineColor = Qt::darkBlue;
+    m_backgroundColor = Qt::white;
 
     setFlags(ItemIsMovable | ItemIsSelectable);
 }
 
 Node::~Node()
 {
-    foreach (Link *link, myLinks)
+    foreach (Link *link, m_links)
         delete link;
 }
 
-void Node::setText(const QString &text)
+void Node::setText(const QString& text)
 {
     prepareGeometryChange();
-    myText = text;
+    m_text = text;
     update();
 }
 
 QString Node::text() const
 {
-    return myText;
+    return m_text;
 }
 
 void Node::setTextColor(const QColor &color)
 {
-    myTextColor = color;
+    m_textColor = color;
     update();
 }
 
 QColor Node::textColor() const
 {
-    return myTextColor;
+    return m_textColor;
 }
 
 void Node::setOutlineColor(const QColor &color)
 {
-    myOutlineColor = color;
+    m_outlineColor = color;
     update();
 }
 
 QColor Node::outlineColor() const
 {
-    return myOutlineColor;
+    return m_outlineColor;
 }
 
 void Node::setBackgroundColor(const QColor &color)
 {
-    myBackgroundColor = color;
+    m_backgroundColor = color;
     update();
 }
 
 QColor Node::backgroundColor() const
 {
-    return myBackgroundColor;
+    return m_backgroundColor;
 }
 
 void Node::addLink(Link *link)
 {
-    myLinks.insert(link);
+    m_links.insert(link);
 }
 
 void Node::removeLink(Link *link)
 {
-    myLinks.remove(link);
+    m_links.remove(link);
 }
 
 QRectF Node::boundingRect() const
@@ -96,34 +96,35 @@ void Node::paint(QPainter *painter,
                  const QStyleOptionGraphicsItem *option,
                  QWidget * /* widget */)
 {
-    QPen pen(myOutlineColor);
-    if (option->state & QStyle::State_Selected) {
+    QPen pen(m_outlineColor);
+    if (option->state & QStyle::State_Selected)
+    {
         pen.setStyle(Qt::DotLine);
         pen.setWidth(2);
     }
     painter->setPen(pen);
-    painter->setBrush(myBackgroundColor);
+    painter->setBrush(m_backgroundColor);
 
     QRectF rect = outlineRect();
     painter->drawRoundRect(rect, roundness(rect.width()),
                            roundness(rect.height()));
 
-    painter->setPen(myTextColor);
-    painter->drawText(rect, Qt::AlignCenter, myText);
+    painter->setPen(m_textColor);
+    painter->drawText(rect, Qt::AlignCenter, m_text);
 }
 
 void Node::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     QString text = QInputDialog::getText(event->widget(),
                            tr("Edit Text"), tr("Enter new text:"),
-                           QLineEdit::Normal, myText);
+                           QLineEdit::Normal, m_text);
     if (!text.isEmpty())
         setText(text);
 }
 
 void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    for(auto link : myLinks)
+    for(auto link : m_links)
     {
         link->trackNodes();
     }
@@ -131,10 +132,9 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     QGraphicsItem::mouseMoveEvent(event);
 }
 
-void Node::mousePressEvent(QGraphicsSceneMouseEvent *event)
+void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     QPointF curPos = event->pos();
-    QPointF nodePos = pos();
     QRectF rect = outlineRect();
     rect.adjust(3, 3, -3, -3);
     //rect.translate(nodePos);
@@ -164,8 +164,9 @@ void Node::dragMoveEvent(QGraphicsSceneDragDropEvent *event)
 QVariant Node::itemChange(GraphicsItemChange change,
                           const QVariant &value)
 {
-    if (change == ItemPositionHasChanged) {
-        foreach (Link *link, myLinks)
+    if (change == ItemPositionHasChanged)
+    {
+        foreach (Link *link, m_links)
             link->trackNodes();
     }
     return QGraphicsItem::itemChange(change, value);
@@ -175,7 +176,7 @@ QRectF Node::outlineRect() const
 {
     const int Padding = 8;
     QFontMetrics metrics = QApplication::fontMetrics();
-    QRect rect = metrics.boundingRect(myText);
+    QRect rect = metrics.boundingRect(m_text);
     rect.adjust(-Padding, -Padding, +Padding, +Padding);
     rect.translate(-rect.center());
     return rect;

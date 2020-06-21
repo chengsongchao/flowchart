@@ -1,15 +1,15 @@
-#include <QtGui>
+﻿#include <QtGui>
 
 #include "link.h"
 #include "node.h"
 
 Link::Link(Node *fromNode, Node *toNode)
 {
-    myFromNode = fromNode;
-    myToNode = toNode;
+    m_fromNode = fromNode;
+    m_toNode = toNode;
 
-    myFromNode->addLink(this);
-    myToNode->addLink(this);
+    m_fromNode->addLink(this);
+    m_toNode->addLink(this);
 
     setFlags(QGraphicsItem::ItemIsSelectable);
     setZValue(-1);
@@ -20,21 +20,21 @@ Link::Link(Node *fromNode, Node *toNode)
 
 Link::~Link()
 {
-    myFromNode->removeLink(this);
-    myToNode->removeLink(this);
+    m_fromNode->removeLink(this);
+    m_toNode->removeLink(this);
 }
 
 Node *Link::fromNode() const
 {
-    return myFromNode;
+    return m_fromNode;
 }
 
 Node *Link::toNode() const
 {
-    return myToNode;
+    return m_toNode;
 }
 
-void Link::setColor(const QColor &color)
+void Link::setColor(const QColor& color)
 {
     setPen(QPen(color, 1.0));
 }
@@ -46,5 +46,5 @@ QColor Link::color() const
 
 void Link::trackNodes()
 {
-    setLine(QLineF(myFromNode->pos(), myToNode->pos()));
+    setLine(QLineF(m_fromNode->pos(), m_toNode->pos()));
 }

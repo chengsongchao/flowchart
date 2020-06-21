@@ -16,20 +16,20 @@ public:
 class Link : public QGraphicsLineItem
 {
 public:
-    Link(Node *fromNode, Node *toNode);
+    Link(Node* fromNode, Node* toNode);
     ~Link();
 
-    Node *fromNode() const;
-    Node *toNode() const;
+    Node* fromNode() const;
+    Node* toNode() const;
 
-    void setColor(const QColor &color);
+    void setColor(const QColor& color);
     QColor color() const;
 
     void trackNodes();
 
 private:
-    Node *myFromNode;
-    Node *myToNode;
+    Node* m_fromNode;
+    Node* m_toNode;
 };
 
 #endif

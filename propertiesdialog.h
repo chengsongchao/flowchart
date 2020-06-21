@@ -1,4 +1,4 @@
-#ifndef PROPERTIESDIALOG_H
+﻿#ifndef PROPERTIESDIALOG_H
 #define PROPERTIESDIALOG_H
 
 #include "ui_propertiesdialog.h"
@@ -10,7 +10,7 @@ class PropertiesDialog : public QDialog, private Ui::PropertiesDialog
     Q_OBJECT
 
 public:
-    PropertiesDialog(Node *node, QWidget *parent = 0);
+    PropertiesDialog(Node* node, QWidget* parent = 0);
 
 private slots:
     void on_buttonBox_accepted();
@@ -19,13 +19,13 @@ private slots:
     void on_backgroundColorButton_clicked();
 
 private:
-    void updateColorLabel(QLabel *label, const QColor &color);
-    void chooseColor(QLabel *label, QColor *color);
+    void updateColorLabel(QLabel* label, const QColor& color);
+    void chooseColor(QLabel* label, QColor* color);
 
-    Node *node;
-    QColor textColor;
-    QColor outlineColor;
-    QColor backgroundColor;
+    Node* m_node;
+    QColor m_textColor;
+    QColor m_outlineColor;
+    QColor m_backgroundColor;
 };
 
 #endif

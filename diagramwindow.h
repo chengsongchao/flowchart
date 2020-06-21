@@ -1,4 +1,4 @@
-#ifndef DIAGRAMWINDOW_H
+﻿#ifndef DIAGRAMWINDOW_H
 #define DIAGRAMWINDOW_H
 
 #include <QMainWindow>
@@ -31,33 +31,34 @@ private slots:
     void updateActions();
 
 private:
-    typedef QPair<Node *, Node *> NodePair;
+    typedef QPair<Node*, Node*> NodePair;
 
     void createActions();
     void createMenus();
     void createToolBars();
     void setZValue(int z);
-    void setupNode(Node *node);
-    Node *selectedNode() const;
-    Link *selectedLink() const;
+    void setupNode(Node* node);
+    Node* selectedNode() const;
+    Link* selectedLink() const;
     NodePair selectedNodePair() const;
 
-    QMenu *fileMenu;
-    QMenu *editMenu;
-    QToolBar *editToolBar;
-    QAction *exitAction;
-    QAction *addNodeAction;
-    QAction *addLinkAction;
-    QAction *deleteAction;
-    QAction *cutAction;
-    QAction *copyAction;
-    QAction *pasteAction;
-    QAction *bringToFrontAction;
-    QAction *sendToBackAction;
-    QAction *propertiesAction;
+    QMenu* fileMenu;
+    QMenu* editMenu;
+    QToolBar* editToolBar;
+    QAction* exitAction;
+    QAction* addNodeAction;
+    QAction* addLinkAction;
+    QAction* deleteAction;
+    QAction* cutAction;
+    QAction* copyAction;
+    QAction* pasteAction;
+    QAction* bringToFrontAction;
+    QAction* sendToBackAction;
+    QAction* propertiesAction;
+    QAction* m_shapeAction;
 
-    QGraphicsScene *scene;
-    QGraphicsView *view;
+    QGraphicsScene* scene;
+    QGraphicsView* view;
 
     int minZ;
     int maxZ;
